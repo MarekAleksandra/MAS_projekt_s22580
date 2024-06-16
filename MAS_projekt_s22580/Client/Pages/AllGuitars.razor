@@ -1,0 +1,61 @@
+﻿@page "/guitars"
+@using MAS_projekt_s22580.Shared.DTOs
+@using Newtonsoft.Json;
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<PageTitle>Guitars</PageTitle>
+
+<h1>Available Guitars</h1>
+<br>
+@if (guitars == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (guitars.Count == 0)
+{
+    <p><em>No guitars found.</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Brand</th>
+                <th>Model</th>
+                <th>Price</th>
+                <th>Number of Strings</th>
+                <th>Fretboard Material</th>
+                <th>Body Material</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var guitar in guitars)
+            {
+                <tr>
+                    <td>@guitar.Brand</td>
+                    <td>@guitar.Model</td>
+                    <td>@guitar.Price</td>
+                    <td>@guitar.NumberOfStrings</td>
+                    <td>@guitar.FretboardMaterial</td>
+                    <td>@guitar.BodyMaterial</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<GuitarForList> guitars;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Http.GetAsync("guitar");
+        if (response.IsSuccessStatusCode)
+        {
+            var json = await response.Content.ReadAsStringAsync();
+            guitars = JsonConvert.DeserializeObject<List<GuitarForList>>(json);
+        }
+   
+    }
+}

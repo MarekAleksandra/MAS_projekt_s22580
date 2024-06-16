@@ -1,0 +1,58 @@
+﻿@page "/"
+@using MAS_projekt_s22580.Shared.DTOs
+@using Newtonsoft.Json;
+@inject HttpClient Http
+@inject NavigationManager navigation
+<PageTitle>Clients</PageTitle>
+
+<h1>Clients</h1>
+
+@if (clients == null)
+{
+    <p><em>Loading</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th @onclick="@(()=>SortByClientFirstName())">Client</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var client in clients)
+            {
+                <tr>
+                    <td>@client.FirstName @client.LastName</td>
+                     <td>
+                        <button class="btn btn-primary" style="background-color: black;" @onclick="@(()=>GetOrders(client.Id))">
+                            Show Order</button>
+                        </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ClientForList> clients;
+
+    protected override async Task OnInitializedAsync()
+    {
+           
+            var response = await Http.GetAsync("client");
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                clients = JsonConvert.DeserializeObject<List<ClientForList>>(json);
+            }
+    }
+    public void GetOrders(int Id)
+    {
+        navigation.NavigateTo($"/Order/{Id}/client");
+    }
+    public void SortByClientFirstName()
+    {
+       clients = clients.OrderBy(s => s.FirstName).ToList();
+    }
+}

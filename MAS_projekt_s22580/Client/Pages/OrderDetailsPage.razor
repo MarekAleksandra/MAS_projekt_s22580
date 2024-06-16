@@ -1,0 +1,117 @@
+﻿@page "/Order/details/{Id:int}"
+@using MAS_projekt_s22580.Models;
+@using MAS_projekt_s22580.Shared.DTOs;
+@using Newtonsoft.Json;
+@using System.Net.Http;
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<h3>Order Details</h3>
+
+<button class="btn btn-primary" style="background-color: black;" @onclick="GoBackToClients">
+    Back to Clients
+</button>
+
+ <button class="btn btn-primary" style="background-color: black;" @onclick="() => GoBackToOrders(Order.ClientID)">
+    Back to Orders
+</button>
+@if (Order == null)
+{
+<p>Order not found.</p>
+}
+else{
+    <form>
+        <label>Client :</label><br>
+        <input type="text" value="@($"{Order.ClientFirstName} {Order.ClientLastName}")" readonly>
+        <br>
+        <label>Order Number :</label><br>
+        <input type="text" value="@Order.OrderNumber" readonly >
+        <br>
+        <label>Status :</label><br>
+        <select @bind="Order.Status">
+            @foreach (var status in Enum.GetValues<Status>())
+            {
+                <option value="@status">@status</option>
+            }
+        </select>
+        <br>
+        @if (!string.IsNullOrEmpty(validationMessage))
+        {
+            <div style="color: red;">@validationMessage</div>
+        }
+        <br>
+        <button type="button" class="btn btn-primary" style="background-color: black;" @onclick="UpdateStatus">
+            Change status
+        </button>
+    </form>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+    private OrderDetails Order;
+    private string validationMessage;
+    private Status previousStatus;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Http.GetAsync($"Order/details/{Id}");
+        if (response.IsSuccessStatusCode)
+        {
+            var json = await response.Content.ReadAsStringAsync();
+
+                Order = JsonConvert.DeserializeObject<OrderDetails>(json);
+                previousStatus = Order.Status;
+            
+        }
+        else
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Error fetching orders: {errorContent}");
+        }
+    }
+
+   
+    private async Task UpdateStatus()
+    {
+        var json = JsonConvert.SerializeObject(Order);
+
+        if (previousStatus == Status.Received)
+        {
+            validationMessage = "The status 'Received' cannot be changed once it is set.";
+            return;
+        }
+        if (previousStatus == Order.Status)
+        {
+            validationMessage = "The new status must be different from the previous status.";
+            return;
+        }
+
+
+        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        var response = await Http.PutAsync($"Order/details/{Id}", content);
+
+        if (response.IsSuccessStatusCode)
+        {
+            Console.WriteLine("Order status updated successfully.");
+        }
+        else
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Error updating order status: {errorContent}");
+        }
+
+        GoBackToClients();
+    }
+
+    private void GoBackToClients()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    private void GoBackToOrders(int ClientId)
+    {
+        Navigation.NavigateTo($"/Order/{ClientId}/client");
+    }
+
+}
